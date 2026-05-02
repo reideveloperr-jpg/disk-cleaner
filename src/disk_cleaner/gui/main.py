@@ -5,9 +5,10 @@ from __future__ import annotations
 import os
 import sys
 from pathlib import Path
+from typing import cast
 
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QAction
+from PySide6.QtGui import QAction, QActionGroup
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QApplication,
@@ -20,7 +21,6 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QMainWindow,
     QMessageBox,
-    QProgressBar,
     QPushButton,
     QStatusBar,
     QTabWidget,
@@ -36,6 +36,8 @@ from ..classifier import CATEGORY_ICON, CATEGORY_LABEL, FileCategory
 from ..duplicates import DuplicateGroup
 from ..junk import RULES, JunkItem
 from ..scanner import DirNode, ScanResult, format_size, top_n_largest
+from .spinner import BusySpinner
+from .theme import ThemeMode, apply_theme, load_saved_mode, save_mode
 from .workers import DuplicatesWorker, JunkWorker, ScanWorker
 
 LOG_PATH = Path.home() / ".disk-cleaner" / "actions.log.jsonl"
@@ -88,18 +90,19 @@ class MainWindow(QMainWindow):
         path_bar.addWidget(self.scan_btn)
         root.addLayout(path_bar)
 
-        # Прогресс
-        self.progress = QProgressBar()
-        self.progress.setRange(0, 0)  # неопределённый — будет заменён
-        self.progress.setVisible(False)
+        # Прогресс — спиннер вместо полоски
+        progress_row = QHBoxLayout()
+        progress_row.setContentsMargins(0, 0, 0, 0)
+        progress_row.setSpacing(10)
+        self.spinner = BusySpinner(self, diameter=22, thickness=3)
         self.progress_label = QLabel("")
-        self.progress_label.setStyleSheet("color: #666;")
-        root.addWidget(self.progress)
-        root.addWidget(self.progress_label)
+        self.progress_label.setObjectName("secondary")
+        progress_row.addWidget(self.spinner)
+        progress_row.addWidget(self.progress_label, 1)
+        root.addLayout(progress_row)
 
         # Сводка по категориям
         self.summary_label = QLabel("Нет данных. Нажми «Сканировать».")
-        self.summary_label.setStyleSheet("font-size: 13px;")
         root.addWidget(self.summary_label)
 
         # Чипы выбора категорий
@@ -107,11 +110,15 @@ class MainWindow(QMainWindow):
         chips_layout = QHBoxLayout(chips_frame)
         chips_layout.setContentsMargins(0, 0, 0, 0)
         chips_layout.setSpacing(6)
-        chips_layout.addWidget(QLabel("Тип:"))
+        type_label = QLabel("Тип:")
+        type_label.setObjectName("secondary")
+        chips_layout.addWidget(type_label)
         self.category_checks: dict[FileCategory, QCheckBox] = {}
         for cat in FileCategory:
             cb = QCheckBox(f"{CATEGORY_ICON[cat]} {CATEGORY_LABEL[cat]}")
             cb.setChecked(True)
+            cb.setProperty("role", "chip")
+            cb.setCursor(Qt.CursorShape.PointingHandCursor)
             cb.stateChanged.connect(self._refresh_top_files)
             chips_layout.addWidget(cb)
             self.category_checks[cat] = cb
@@ -186,6 +193,7 @@ class MainWindow(QMainWindow):
         self.dry_run_cb = QCheckBox("Dry run (не удалять, только показать план)")
         self.dry_run_cb.setChecked(True)
         self.delete_btn = QPushButton("🗑 Удалить выбранное (в корзину)")
+        self.delete_btn.setProperty("role", "danger")
         self.delete_btn.clicked.connect(self._delete_selected)
         bottom.addWidget(self.dry_run_cb)
         bottom.addStretch(1)
@@ -201,6 +209,24 @@ class MainWindow(QMainWindow):
         quit_action.setShortcut("Ctrl+Q")
         quit_action.triggered.connect(self.close)
         file_menu.addAction(quit_action)
+
+        # View menu — выбор темы
+        view_menu = self.menuBar().addMenu("Вид")
+        theme_menu = view_menu.addMenu("Тема")
+        self._theme_group = QActionGroup(self)
+        self._theme_group.setExclusive(True)
+        current_mode = load_saved_mode()
+        for mode, label in (
+            (ThemeMode.DARK, "Тёмная"),
+            (ThemeMode.LIGHT, "Светлая"),
+            (ThemeMode.SYSTEM, "Системная"),
+        ):
+            act = QAction(label, self, checkable=True)
+            act.setData(mode.value)
+            act.setChecked(mode is current_mode)
+            act.triggered.connect(lambda _checked, m=mode: self._on_theme_selected(m))
+            self._theme_group.addAction(act)
+            theme_menu.addAction(act)
 
     # ---------- Действия пользователя ----------
 
@@ -223,8 +249,7 @@ class MainWindow(QMainWindow):
             QMessageBox.warning(self, "Ошибка", "Выбери существующую папку.")
             return
         self._reset_results()
-        self.progress.setVisible(True)
-        self.progress.setRange(0, 0)
+        self.spinner.start()
         self.progress_label.setText(f"Сканирую {path}…")
         self.scan_btn.setText("⏹ Стоп")
         worker = ScanWorker(path, self)
@@ -241,7 +266,7 @@ class MainWindow(QMainWindow):
     def _on_scan_done(self, result: ScanResult) -> None:
         self._scan_result = result
         self._scan_worker = None
-        self.progress.setVisible(False)
+        self.spinner.stop()
         self.progress_label.setText(
             f"Готово: {result.total_files} файлов, {format_size(result.total_size)}"
             + (" (отменено)" if result.cancelled else "")
@@ -340,8 +365,7 @@ class MainWindow(QMainWindow):
             return
         self.dup_tree.clear()
         self.dup_btn.setEnabled(False)
-        self.progress.setVisible(True)
-        self.progress.setRange(0, 100)
+        self.spinner.start()
         self.progress_label.setText("Поиск дубликатов…")
         worker = DuplicatesWorker(self._scan_result.files, self)
         worker.progress.connect(self._on_dup_progress)
@@ -351,12 +375,20 @@ class MainWindow(QMainWindow):
 
     def _on_dup_progress(self, processed: int, total: int) -> None:
         if total > 0:
-            pct = int(processed * 100 / total)
-            self.progress.setValue(pct)
             self.progress_label.setText(f"Поиск дубликатов: {processed}/{total}")
 
+    def _on_theme_selected(self, mode: ThemeMode) -> None:
+        save_mode(mode)
+        instance = QApplication.instance()
+        if instance is None:
+            return
+        app = cast(QApplication, instance)
+        p = apply_theme(app, mode)
+        # Обновляем цвет спиннера (он рисуется вручную, не через QSS)
+        self.spinner.set_colors(p.accent, p.border_subtle)
+
     def _on_dup_done(self, groups: list[DuplicateGroup]) -> None:
-        self.progress.setVisible(False)
+        self.spinner.stop()
         self.dup_btn.setEnabled(True)
         wasted = sum(g.wasted for g in groups)
         self.progress_label.setText(
@@ -463,7 +495,12 @@ def _build_dir_items(parent_item: QTreeWidgetItem, parent: DirNode) -> None:
 
 def main() -> int:
     app = QApplication(sys.argv)
+    app.setApplicationName("disk-cleaner")
+    app.setOrganizationName("disk-cleaner")
+    mode = load_saved_mode()
+    p = apply_theme(app, mode)
     win = MainWindow()
+    win.spinner.set_colors(p.accent, p.border_subtle)
     win.show()
     return int(app.exec())
 

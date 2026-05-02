@@ -20,10 +20,25 @@ _EXT_MAP: dict[str, FileCategory] = {}
 
 
 def _register(category: FileCategory, *exts: str) -> None:
+    """Регистрирует расширения за категорией.
+
+    Жёстко падает при коллизии — два разных правила, претендующих на одно
+    расширение, скорее всего ошибка (как было с ``ts``: VIDEO vs CODE).
+    Если расширение нужно в нескольких категориях, выбери одну явно.
+    """
     for e in exts:
-        _EXT_MAP[e.lower()] = category
+        key = e.lower()
+        prev = _EXT_MAP.get(key)
+        if prev is not None and prev is not category:
+            raise ValueError(
+                f"Extension {key!r} already registered for {prev!r}, "
+                f"refusing to overwrite with {category!r}"
+            )
+        _EXT_MAP[key] = category
 
 
+# `ts` оставлен в VIDEO (MPEG Transport Stream): для disk-cleaner такие файлы
+# обычно крупные, а TypeScript-исходники — мелкие и редко занимают место.
 _register(
     FileCategory.VIDEO,
     "mp4", "mkv", "mov", "avi", "webm", "m4v", "mpg", "mpeg",
@@ -54,7 +69,7 @@ _register(
 )
 _register(
     FileCategory.CODE,
-    "py", "js", "mjs", "cjs", "ts", "tsx", "jsx", "go", "rs",
+    "py", "js", "mjs", "cjs", "tsx", "jsx", "go", "rs",
     "c", "cc", "cpp", "cxx", "h", "hpp", "hh", "java", "kt",
     "kts", "swift", "scala", "rb", "php", "pl", "lua", "sh",
     "bash", "zsh", "fish", "ps1", "psm1", "bat", "cmd", "json",

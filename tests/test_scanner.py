@@ -66,3 +66,25 @@ def test_scan_nonexistent_path(tmp_path: Path) -> None:
     result = scan(tmp_path / "no-such-dir")
     assert result.total_files == 0
     assert result.errors  # есть запись об ошибке
+
+
+def test_dirnode_file_count_aggregates(tmp_path: Path) -> None:
+    """Поле file_count должно подниматься вверх по дереву, как и size."""
+    _write(tmp_path / "a.txt", b"x" * 100)
+    _write(tmp_path / "sub" / "b.txt", b"x" * 200)
+    _write(tmp_path / "sub" / "c.txt", b"x" * 300)
+    _write(tmp_path / "sub" / "deeper" / "d.txt", b"x" * 400)
+
+    result = scan(tmp_path)
+    assert result.total_files == 4
+    # корень: 1 файл прямо + 3 в поддереве = 4
+    assert result.root.file_count == 4
+    assert result.root.size == 1000
+    # sub: 2 файла прямо + 1 в deeper = 3
+    sub = next(c for c in result.root.children if c.name == "sub")
+    assert sub.file_count == 3
+    assert sub.size == 900
+    # deeper: 1 файл
+    deeper = next(c for c in sub.children if c.name == "deeper")
+    assert deeper.file_count == 1
+    assert deeper.size == 400

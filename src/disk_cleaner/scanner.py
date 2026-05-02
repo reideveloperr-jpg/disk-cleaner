@@ -222,13 +222,22 @@ def scan(
     )
 
 
-def _aggregate_sizes(node: DirNode) -> int:
-    """Рекурсивно агрегирует размеры детей в родителя. Возвращает общий размер узла."""
-    total = node.size  # уже накоплено по непосредственным файлам
+def _aggregate_sizes(node: DirNode) -> tuple[int, int]:
+    """Рекурсивно агрегирует размер и количество файлов вверх по дереву.
+
+    Возвращает ``(total_size, total_file_count)``. После вызова поля
+    ``node.size`` и ``node.file_count`` отражают сумму по всему поддереву,
+    включая непосредственные файлы и все вложенные папки.
+    """
+    total_size = node.size  # накоплено по непосредственным файлам
+    total_count = node.file_count
     for child in node.children:
-        total += _aggregate_sizes(child)
-    node.size = total
-    return total
+        child_size, child_count = _aggregate_sizes(child)
+        total_size += child_size
+        total_count += child_count
+    node.size = total_size
+    node.file_count = total_count
+    return total_size, total_count
 
 
 def top_n_largest(

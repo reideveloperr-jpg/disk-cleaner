@@ -30,3 +30,24 @@ def test_no_extension_is_other() -> None:
 
 def test_unknown_extension() -> None:
     assert classify("data.weirdext") is FileCategory.OTHER
+
+
+def test_ts_is_video() -> None:
+    """`.ts` (MPEG Transport Stream) — это видео, а не TypeScript.
+
+    Защита от регрессии после фикса коллизии VIDEO vs CODE.
+    """
+    assert classify("clip.ts") is FileCategory.VIDEO
+    assert classify("CLIP.TS") is FileCategory.VIDEO
+    # `.tsx` остался кодом
+    assert classify("App.tsx") is FileCategory.CODE
+
+
+def test_register_collision_raises() -> None:
+    """`_register` должен падать, если расширение уже принадлежит другой категории."""
+    import pytest
+
+    from disk_cleaner.classifier import _register
+
+    with pytest.raises(ValueError, match="already registered"):
+        _register(FileCategory.CODE, "mp4")
