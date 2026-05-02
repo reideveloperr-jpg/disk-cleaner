@@ -4,8 +4,7 @@ from __future__ import annotations
 
 import os
 import sys
-from contextlib import ExitStack, suppress
-from importlib import resources
+from contextlib import suppress
 from pathlib import Path
 from typing import cast
 
@@ -33,6 +32,7 @@ from PySide6.QtWidgets import (
 )
 
 from .. import __version__
+from .._resources import logo_path as _logo_path
 from ..actions import summarize, trash_paths
 from ..classifier import CATEGORY_LABEL, FileCategory, classify
 from ..duplicates import DuplicateGroup
@@ -48,22 +48,6 @@ from .workers import DuplicatesWorker, JunkWorker, ScanWorker
 APP_NAME = "Volchay Cleans"
 ORG_NAME = "volchay-cleans"
 LOG_PATH = Path.home() / ".volchay-cleans" / "actions.log.jsonl"
-
-# Ресурсы PyInstaller / zip-import могут храниться в виртуальных файловых системах;
-# `as_file` экстрагирует их во временный файл и удаляет при выходе из контекста.
-# Держим ExitStack живым на время всего процесса, чтобы QIcon(...) видел путь.
-_RESOURCE_STACK = ExitStack()
-_LOGO_PATH = str(
-    _RESOURCE_STACK.enter_context(
-        resources.as_file(resources.files("disk_cleaner.assets") / "volchay_logo.svg")
-    )
-)
-
-
-def _logo_path() -> str:
-    """Абсолютный путь к SVG-логотипу внутри пакета (валиден всю жизнь процесса)."""
-    return _LOGO_PATH
-
 
 _RADAR_PREF_KEY = "ui/show_radar"
 
