@@ -423,12 +423,26 @@ QMessageBox {{
 """
 
 
+# Имя org/app для QSettings должно совпадать с тем, что ставит main()
+# (см. main.py: ORG_NAME = "volchay-cleans"). Иначе настройки темы будут
+# жить в отдельном файле/реестре от остальных пользовательских настроек.
+_QS_ORG = "volchay-cleans"
+_QS_APP = "volchay-cleans"
 _SETTINGS_KEY = "ui/theme"
+# Старое имя org/app до ребрендинга — читаем из него один раз для миграции,
+# чтобы у юзеров с уже сохранённой темой ничего не сбросилось.
+_LEGACY_QS_ORG = "disk-cleaner"
+_LEGACY_QS_APP = "disk-cleaner"
 
 
 def load_saved_mode() -> ThemeMode:
-    s = QSettings("disk-cleaner", "disk-cleaner")
-    raw = s.value(_SETTINGS_KEY, ThemeMode.DARK.value)
+    s = QSettings(_QS_ORG, _QS_APP)
+    raw = s.value(_SETTINGS_KEY, None)
+    if raw is None:
+        # Migrate: попробовать прочитать из старого ключа и записать в новый.
+        legacy = QSettings(_LEGACY_QS_ORG, _LEGACY_QS_APP)
+        raw = legacy.value(_SETTINGS_KEY, ThemeMode.DARK.value)
+        s.setValue(_SETTINGS_KEY, raw)
     try:
         return ThemeMode(raw)
     except ValueError:
@@ -436,7 +450,7 @@ def load_saved_mode() -> ThemeMode:
 
 
 def save_mode(mode: ThemeMode) -> None:
-    s = QSettings("disk-cleaner", "disk-cleaner")
+    s = QSettings(_QS_ORG, _QS_APP)
     s.setValue(_SETTINGS_KEY, mode.value)
 
 
