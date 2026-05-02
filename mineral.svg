@@ -1,0 +1,104 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" role="img" aria-label="Volchay Mineral Cloud">
+  <title>Volchay Mineral Cloud</title>
+  <defs>
+    <!-- Глубокий ультрамариновый базовый градиент: тёмный синий → насыщенный голубой -->
+    <linearGradient id="faceFront" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#5BB7FF"/>
+      <stop offset="0.45" stop-color="#2E7FE8"/>
+      <stop offset="1" stop-color="#0E2C7A"/>
+    </linearGradient>
+
+    <!-- Левая боковая грань (в тени) -->
+    <linearGradient id="faceLeft" x1="0" y1="0" x2="1" y2="0.4">
+      <stop offset="0" stop-color="#0A1B4D"/>
+      <stop offset="1" stop-color="#1F4FB0"/>
+    </linearGradient>
+
+    <!-- Правая боковая грань (полусвет) -->
+    <linearGradient id="faceRight" x1="1" y1="0" x2="0" y2="0.4">
+      <stop offset="0" stop-color="#1A3E92"/>
+      <stop offset="1" stop-color="#3F8FE8"/>
+    </linearGradient>
+
+    <!-- Верхняя огранка (свет) -->
+    <linearGradient id="faceTopLeft" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#3270D8"/>
+      <stop offset="1" stop-color="#A4D6FF"/>
+    </linearGradient>
+    <linearGradient id="faceTopRight" x1="1" y1="1" x2="0" y2="0">
+      <stop offset="0" stop-color="#1F4FB0"/>
+      <stop offset="1" stop-color="#7CC0FF"/>
+    </linearGradient>
+
+    <!-- Самая яркая верхняя точка (specular) -->
+    <radialGradient id="specularTop" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.95"/>
+      <stop offset="0.4" stop-color="#E8F3FF" stop-opacity="0.5"/>
+      <stop offset="1" stop-color="#E8F3FF" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Падающий внутренний блеск на главной грани -->
+    <linearGradient id="innerHighlight" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.55"/>
+      <stop offset="0.55" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+
+    <!-- Нижняя кромка с полусветом (отражение от поверхности) -->
+    <linearGradient id="bottomGlow" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0E2C7A" stop-opacity="0"/>
+      <stop offset="1" stop-color="#5BB7FF" stop-opacity="0.45"/>
+    </linearGradient>
+
+    <!-- Внешнее свечение вокруг минерала (aura) -->
+    <radialGradient id="aura" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0.4" stop-color="#3F8FE8" stop-opacity="0.45"/>
+      <stop offset="1" stop-color="#3F8FE8" stop-opacity="0"/>
+    </radialGradient>
+
+    <filter id="softBlur" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="2"/>
+    </filter>
+  </defs>
+
+  <!-- Аура -->
+  <circle cx="128" cy="132" r="118" fill="url(#aura)"/>
+
+  <!-- Кристалл: огранённый (octahedron-style) с шестью видимыми гранями.
+       Координаты подобраны так, чтобы дать ощущение объёма с верхней точкой,
+       левой/правой верхними фасками, левой/правой боковыми и центральной передней. -->
+
+  <!-- Левая боковая грань (тень) -->
+  <polygon points="48,128  92,72  128,236" fill="url(#faceLeft)"/>
+  <!-- Правая боковая грань (полусвет) -->
+  <polygon points="208,128  164,72  128,236" fill="url(#faceRight)"/>
+
+  <!-- Левая верхняя фаска -->
+  <polygon points="48,128  92,72  128,40  128,108" fill="url(#faceTopLeft)"/>
+  <!-- Правая верхняя фаска -->
+  <polygon points="208,128  164,72  128,40  128,108" fill="url(#faceTopRight)"/>
+
+  <!-- Главная передняя грань (центральная, самая большая) -->
+  <polygon points="92,72  164,72  128,236  128,108" fill="url(#faceFront)"/>
+
+  <!-- Внутренний блик-полоса на главной грани -->
+  <polygon points="92,72  164,72  128,108" fill="url(#innerHighlight)" opacity="0.85"/>
+
+  <!-- Нижнее лёгкое свечение на длинном «острие» -->
+  <polygon points="128,108  118,200  128,236  138,200" fill="url(#bottomGlow)"/>
+
+  <!-- Тонкие рёбра огранки — подчёркивают грани -->
+  <g fill="none" stroke="#9DD3FF" stroke-width="0.9" stroke-opacity="0.55" stroke-linejoin="miter">
+    <polyline points="48,128  92,72  128,40  164,72  208,128"/>
+    <line x1="128" y1="40" x2="128" y2="236"/>
+    <line x1="92" y1="72" x2="128" y2="108"/>
+    <line x1="164" y1="72" x2="128" y2="108"/>
+    <line x1="48" y1="128" x2="128" y2="236"/>
+    <line x1="208" y1="128" x2="128" y2="236"/>
+  </g>
+
+  <!-- Specular highlight в верхней части (зеркальный блик) -->
+  <ellipse cx="118" cy="78" rx="22" ry="10" fill="url(#specularTop)" filter="url(#softBlur)"/>
+
+  <!-- Маленький дополнительный микро-блик у вершины -->
+  <ellipse cx="124" cy="56" rx="6" ry="3" fill="#FFFFFF" opacity="0.85"/>
+</svg>
