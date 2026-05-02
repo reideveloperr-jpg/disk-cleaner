@@ -208,19 +208,31 @@ QPushButton[role="danger"]:hover {{
     background-color: {p.surface_elev};
 }}
 
+/* ---------- Sidebar (фильтр по типу) ---------- */
+QFrame#sidebar {{
+    background-color: {p.surface};
+    border: 1px solid {p.border_subtle};
+    border-radius: 12px;
+}}
+
 /* ---------- Chips (категории файлов) ---------- */
 QCheckBox[role="chip"] {{
-    background-color: {p.surface};
+    background-color: transparent;
     color: {p.text_secondary};
     border: 1px solid {p.border_subtle};
     border-radius: {chip_radius}px;
-    padding: 4px 12px;
+    padding: 6px 12px;
     spacing: 0px;
+    text-align: left;
 }}
 QCheckBox[role="chip"]::indicator {{
     width: 0px;
     height: 0px;
     margin: 0px;
+    padding: 0px;
+    border: 0px;
+    background: transparent;
+    image: none;
 }}
 QCheckBox[role="chip"]:hover {{
     border-color: {p.border_strong};

@@ -105,15 +105,18 @@ class MainWindow(QMainWindow):
         path_bar = QHBoxLayout()
         self.path_edit = QLineEdit(str(Path.home()))
         self.path_edit.setPlaceholderText("Путь для сканирования")
+        # компактное поле — примерно треть ширины окна
+        self.path_edit.setFixedWidth(330)
         browse_btn = QPushButton("Обзор…")
         browse_btn.clicked.connect(self._browse)
         self.scan_btn = QPushButton("Сканировать")
         self.scan_btn.setDefault(True)
         self.scan_btn.clicked.connect(self._toggle_scan)
         path_bar.addWidget(QLabel("Папка:"))
-        path_bar.addWidget(self.path_edit, 1)
+        path_bar.addWidget(self.path_edit)
         path_bar.addWidget(browse_btn)
         path_bar.addWidget(self.scan_btn)
+        path_bar.addStretch(1)
         root.addLayout(path_bar)
 
         # Прогресс — спиннер вместо полоски
@@ -131,14 +134,21 @@ class MainWindow(QMainWindow):
         self.summary_label = QLabel("Нет данных. Нажми «Сканировать».")
         root.addWidget(self.summary_label)
 
-        # Чипы выбора категорий
-        chips_frame = QFrame()
-        chips_layout = QHBoxLayout(chips_frame)
-        chips_layout.setContentsMargins(0, 0, 0, 0)
-        chips_layout.setSpacing(6)
-        type_label = QLabel("Тип:")
+        # Контентная зона: слева — сайдбар «Тип», справа — вкладки
+        content_row = QHBoxLayout()
+        content_row.setContentsMargins(0, 0, 0, 0)
+        content_row.setSpacing(12)
+
+        # Сайдбар: вертикальный список чипов категорий + быстрые пресеты
+        sidebar = QFrame()
+        sidebar.setObjectName("sidebar")
+        sidebar.setFixedWidth(180)
+        sidebar_layout = QVBoxLayout(sidebar)
+        sidebar_layout.setContentsMargins(10, 10, 10, 10)
+        sidebar_layout.setSpacing(6)
+        type_label = QLabel("Тип")
         type_label.setObjectName("secondary")
-        chips_layout.addWidget(type_label)
+        sidebar_layout.addWidget(type_label)
         self.category_checks: dict[FileCategory, QCheckBox] = {}
         for cat in FileCategory:
             cb = QCheckBox(CATEGORY_LABEL[cat])
@@ -146,24 +156,28 @@ class MainWindow(QMainWindow):
             cb.setProperty("role", "chip")
             cb.setCursor(Qt.CursorShape.PointingHandCursor)
             cb.stateChanged.connect(self._refresh_top_files)
-            chips_layout.addWidget(cb)
+            sidebar_layout.addWidget(cb)
             self.category_checks[cat] = cb
-        # кнопки для удобства
+        sidebar_layout.addSpacing(12)
+        presets_label = QLabel("Быстрый выбор")
+        presets_label.setObjectName("secondary")
+        sidebar_layout.addWidget(presets_label)
         only_video_btn = QPushButton("Только видео")
         only_video_btn.clicked.connect(lambda: self._set_categories({FileCategory.VIDEO}))
         only_photo_btn = QPushButton("Только фото")
         only_photo_btn.clicked.connect(lambda: self._set_categories({FileCategory.PHOTO}))
         all_btn = QPushButton("Все")
         all_btn.clicked.connect(lambda: self._set_categories(set(FileCategory)))
-        chips_layout.addStretch(1)
-        chips_layout.addWidget(only_video_btn)
-        chips_layout.addWidget(only_photo_btn)
-        chips_layout.addWidget(all_btn)
-        root.addWidget(chips_frame)
+        sidebar_layout.addWidget(only_video_btn)
+        sidebar_layout.addWidget(only_photo_btn)
+        sidebar_layout.addWidget(all_btn)
+        sidebar_layout.addStretch(1)
+        content_row.addWidget(sidebar)
 
         # Вкладки
         self.tabs = QTabWidget()
-        root.addWidget(self.tabs, 1)
+        content_row.addWidget(self.tabs, 1)
+        root.addLayout(content_row, 1)
 
         # Вкладка 1: Топ файлов с фильтром по типу
         self.files_tree = QTreeWidget()
