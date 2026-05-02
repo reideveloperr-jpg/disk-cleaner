@@ -8,7 +8,7 @@ from importlib import resources
 from pathlib import Path
 from typing import cast
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QSize, Qt
 from PySide6.QtGui import QAction, QActionGroup, QIcon
 from PySide6.QtWidgets import (
     QAbstractItemView,
@@ -84,6 +84,22 @@ class MainWindow(QMainWindow):
         central = QWidget(self)
         root = QVBoxLayout(central)
         root.setContentsMargins(10, 10, 10, 6)
+
+        # Бренд-хедер: логотип волка («Volchay») + слово марки «Cleans»
+        brand_row = QHBoxLayout()
+        brand_row.setContentsMargins(0, 2, 0, 6)
+        brand_row.setSpacing(10)
+        brand_logo = QLabel()
+        brand_logo.setPixmap(
+            QIcon(_logo_path()).pixmap(QSize(36, 36))
+        )
+        brand_logo.setFixedSize(36, 36)
+        brand_text = QLabel("Cleans")
+        brand_text.setObjectName("wordmark")
+        brand_row.addWidget(brand_logo)
+        brand_row.addWidget(brand_text)
+        brand_row.addStretch(1)
+        root.addLayout(brand_row)
 
         # Панель пути + кнопок
         path_bar = QHBoxLayout()

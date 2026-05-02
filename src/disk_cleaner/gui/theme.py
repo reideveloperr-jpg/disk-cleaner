@@ -140,6 +140,14 @@ QLabel#secondary {{
     color: {p.text_secondary};
 }}
 
+QLabel#wordmark {{
+    color: {p.text_primary};
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    padding-left: 2px;
+}}
+
 /* ---------- Inputs ---------- */
 QLineEdit {{
     background-color: {p.surface};

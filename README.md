@@ -1,5 +1,6 @@
 <p align="center">
-  <img src="src/disk_cleaner/assets/volchay_logo.svg" width="128" alt="Volchay Cleans">
+  <img src="src/disk_cleaner/assets/volchay_logo.svg" width="96" alt="Volchay" align="middle">
+  <span style="font-size: 48px; font-weight: 600; vertical-align: middle;">&nbsp;Cleans</span>
 </p>
 
 <h1 align="center">Volchay Cleans</h1>
