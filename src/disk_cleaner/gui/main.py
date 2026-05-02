@@ -4,12 +4,13 @@ from __future__ import annotations
 
 import os
 import sys
+from contextlib import ExitStack, suppress
 from importlib import resources
 from pathlib import Path
 from typing import cast
 
-from PySide6.QtCore import QSize, Qt
-from PySide6.QtGui import QAction, QActionGroup, QIcon
+from PySide6.QtCore import QPoint, QSettings, QSize, Qt
+from PySide6.QtGui import QAction, QActionGroup, QIcon, QResizeEvent
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QApplication,
@@ -33,10 +34,13 @@ from PySide6.QtWidgets import (
 
 from .. import __version__
 from ..actions import summarize, trash_paths
-from ..classifier import CATEGORY_LABEL, FileCategory
+from ..classifier import CATEGORY_LABEL, FileCategory, classify
 from ..duplicates import DuplicateGroup
 from ..junk import RULES, JunkItem
 from ..scanner import DirNode, ScanResult, format_size, top_n_largest
+from .rgb_background import RgbBackground
+from .rgb_bar import RgbBar
+from .scan_radar import ScanRadar
 from .spinner import BusySpinner
 from .theme import ThemeMode, apply_theme, load_saved_mode, save_mode
 from .workers import DuplicatesWorker, JunkWorker, ScanWorker
@@ -45,11 +49,36 @@ APP_NAME = "Volchay Cleans"
 ORG_NAME = "volchay-cleans"
 LOG_PATH = Path.home() / ".volchay-cleans" / "actions.log.jsonl"
 
+# Ресурсы PyInstaller / zip-import могут храниться в виртуальных файловых системах;
+# `as_file` экстрагирует их во временный файл и удаляет при выходе из контекста.
+# Держим ExitStack живым на время всего процесса, чтобы QIcon(...) видел путь.
+_RESOURCE_STACK = ExitStack()
+_LOGO_PATH = str(
+    _RESOURCE_STACK.enter_context(
+        resources.as_file(resources.files("disk_cleaner.assets") / "volchay_logo.svg")
+    )
+)
+
 
 def _logo_path() -> str:
-    """Абсолютный путь к SVG-логотипу внутри пакета."""
-    with resources.as_file(resources.files("disk_cleaner.assets") / "volchay_logo.svg") as p:
-        return str(p)
+    """Абсолютный путь к SVG-логотипу внутри пакета (валиден всю жизнь процесса)."""
+    return _LOGO_PATH
+
+
+_RADAR_PREF_KEY = "ui/show_radar"
+
+
+def _load_radar_pref() -> bool:
+    s = QSettings(ORG_NAME, ORG_NAME)
+    val = s.value(_RADAR_PREF_KEY, True)
+    if isinstance(val, str):
+        return val.lower() in ("1", "true", "yes")
+    return bool(val)
+
+
+def _save_radar_pref(enabled: bool) -> None:
+    s = QSettings(ORG_NAME, ORG_NAME)
+    s.setValue(_RADAR_PREF_KEY, bool(enabled))
 
 
 class _SizeItem(QTreeWidgetItem):
@@ -80,8 +109,15 @@ class MainWindow(QMainWindow):
         self._junk_worker: JunkWorker | None = None
         self._dup_worker: DuplicatesWorker | None = None
 
+        # RGB-фон — живёт как дочерний виджет самого QMainWindow (не central),
+        # чтобы лежать позади всего и быть во всю ширину/высоту. Изначально скрыт.
+        self._rgb_bg = RgbBackground(self)
+        self._rgb_bg.setGeometry(0, 0, self.width(), self.height())
+        self._rgb_bg.hide()
+
         # Центральный layout
         central = QWidget(self)
+        central.setObjectName("central")
         root = QVBoxLayout(central)
         root.setContentsMargins(10, 10, 10, 6)
 
@@ -228,20 +264,35 @@ class MainWindow(QMainWindow):
         dup_layout.addWidget(self.dup_tree, 1)
         self.tabs.addTab(dup_widget, "Дубликаты")
 
-        # Низ: dry-run + удалить
+        # Низ: dry-run + радар + удалить
         bottom = QHBoxLayout()
         self.dry_run_cb = QCheckBox("Dry run (не удалять, только показать план)")
         self.dry_run_cb.setChecked(True)
+        self.radar_cb = QCheckBox("Радар при сканировании")
+        self.radar_cb.setChecked(_load_radar_pref())
+        self.radar_cb.toggled.connect(_save_radar_pref)
         self.delete_btn = QPushButton("Удалить выбранное (в корзину)")
         self.delete_btn.setProperty("role", "danger")
         self.delete_btn.clicked.connect(self._delete_selected)
         bottom.addWidget(self.dry_run_cb)
+        bottom.addWidget(self.radar_cb)
         bottom.addStretch(1)
         bottom.addWidget(self.delete_btn)
         root.addLayout(bottom)
 
+        # Самый низ — анимированная RGB-полоска во всю ширину окна.
+        self.rgb_bar = RgbBar(central, height=4)
+        # Чтобы полоска шла «в стык» к нижней кромке, обнуляем боковые отступы вокруг неё.
+        root.setContentsMargins(10, 10, 10, 0)
+        root.addWidget(self.rgb_bar)
+
         self.setCentralWidget(central)
         self.setStatusBar(QStatusBar(self))
+
+        # Радар — overlay поверх области вкладок (позиция пересчитывается в resizeEvent /
+        # при старте скана). Привязан к self, чтобы перекрывать всю рабочую зону.
+        self._radar = ScanRadar(self)
+        self._radar.hide()
 
         # File menu
         file_menu = self.menuBar().addMenu("Файл")
@@ -260,6 +311,7 @@ class MainWindow(QMainWindow):
             (ThemeMode.DARK, "Тёмная"),
             (ThemeMode.LIGHT, "Светлая"),
             (ThemeMode.SYSTEM, "Системная"),
+            (ThemeMode.RGB, "RGB (анимация)"),
         ):
             act = QAction(label, self, checkable=True)
             act.setData(mode.value)
@@ -292,6 +344,10 @@ class MainWindow(QMainWindow):
         self.spinner.start()
         self.progress_label.setText(f"Сканирую {path}…")
         self.scan_btn.setText("Остановить")
+        if self.radar_cb.isChecked():
+            self._position_radar()
+            self._radar.start()
+            self._radar.raise_()
         worker = ScanWorker(path, self)
         worker.progress.connect(self._on_scan_progress)
         worker.finished_ok.connect(self._on_scan_done)
@@ -302,11 +358,16 @@ class MainWindow(QMainWindow):
         self.progress_label.setText(
             f"Файлов: {files}, размер: {format_size(bytes_)}, текущий: …{current[-60:]}"
         )
+        # Добавляем блип на радар — только если он ожив: дешевле и безопаснее,
+        # чем выполнять classify(...) впустую.
+        if self._radar.isVisible():
+            self._radar.add_blip(classify(current))
 
     def _on_scan_done(self, result: ScanResult) -> None:
         self._scan_result = result
         self._scan_worker = None
         self.spinner.stop()
+        self._radar.stop()  # плавно гасит и скроет радар, если он был включён
         self.progress_label.setText(
             f"Готово: {result.total_files} файлов, {format_size(result.total_size)}"
             + (" (отменено)" if result.cancelled else "")
@@ -426,6 +487,31 @@ class MainWindow(QMainWindow):
         p = apply_theme(app, mode)
         # Обновляем цвет спиннера (он рисуется вручную, не через QSS)
         self.spinner.set_colors(p.accent, p.border_subtle)
+        self._apply_rgb_background(mode is ThemeMode.RGB)
+
+    def _apply_rgb_background(self, enabled: bool) -> None:
+        if enabled:
+            self._rgb_bg.setGeometry(0, 0, self.width(), self.height())
+            self._rgb_bg.lower()
+            self._rgb_bg.start()
+        else:
+            self._rgb_bg.stop()
+
+    def resizeEvent(self, event: QResizeEvent) -> None:
+        super().resizeEvent(event)
+        # Перетягиваем RGB-фон под размер окна.
+        self._rgb_bg.setGeometry(0, 0, self.width(), self.height())
+        self._position_radar()
+
+    def _position_radar(self) -> None:
+        """Размещает радар поверх области вкладок (там все результаты)."""
+        if not hasattr(self, "_radar"):
+            return
+        # Геометрия вкладок в системе координат QMainWindow.
+        origin = self.tabs.mapTo(self, QPoint(0, 0))
+        self._radar.setGeometry(
+            origin.x(), origin.y(), self.tabs.width(), self.tabs.height()
+        )
 
     def _on_dup_done(self, groups: list[DuplicateGroup]) -> None:
         self.spinner.stop()
@@ -506,6 +592,22 @@ class MainWindow(QMainWindow):
     # ---------- Вспомогательное ----------
 
     def _reset_results(self) -> None:
+        # Отвязываем старые воркеры: их запоздалые коллбэки иначе перезапишут
+        # состояние нового скана (спиннер / лейблы / деревья).
+        for worker in (self._junk_worker, self._dup_worker):
+            if worker is None:
+                continue
+            with suppress(RuntimeError, TypeError):
+                worker.finished_ok.disconnect()
+            progress_signal = getattr(worker, "progress", None)
+            if progress_signal is not None:
+                with suppress(RuntimeError, TypeError):
+                    progress_signal.disconnect()
+        if self._dup_worker is not None and self._dup_worker.isRunning():
+            self._dup_worker.cancel()
+        self._junk_worker = None
+        self._dup_worker = None
+
         self._scan_result = None
         self.files_tree.clear()
         self.dirs_tree.clear()
@@ -542,6 +644,8 @@ def main() -> int:
     p = apply_theme(app, mode)
     win = MainWindow()
     win.spinner.set_colors(p.accent, p.border_subtle)
+    if mode is ThemeMode.RGB:
+        win._apply_rgb_background(True)
     win.show()
     return int(app.exec())
 

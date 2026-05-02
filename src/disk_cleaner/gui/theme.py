@@ -21,6 +21,7 @@ class ThemeMode(str, Enum):
     DARK = "dark"
     LIGHT = "light"
     SYSTEM = "system"
+    RGB = "rgb"  # блэкаут + анимированные радужные блобы фоном
 
 
 @dataclass(frozen=True)
@@ -94,6 +95,10 @@ def palette_for(mode: ThemeMode) -> Palette:
     if mode is ThemeMode.LIGHT:
         return LIGHT
     if mode is ThemeMode.DARK:
+        return DARK
+    if mode is ThemeMode.RGB:
+        # RGB-режим использует ту же блэкаут-палитру; отличие — в вижуальном
+        # фоне (анимированные блобы), который подключает само окно.
         return DARK
     # SYSTEM — определяем по текущему QPalette приложения
     try:
@@ -438,5 +443,19 @@ def save_mode(mode: ThemeMode) -> None:
 def apply_theme(app: QApplication, mode: ThemeMode) -> Palette:
     """Применяет тему к приложению. Возвращает выбранную палитру."""
     p = palette_for(mode)
-    app.setStyleSheet(build_qss(p))
+    qss = build_qss(p)
+    if mode is ThemeMode.RGB:
+        # Делаем фон окна и центрального виджета прозрачным, чтобы RGB-фон
+        # просвечивал в свободных зонах (поля, отступы, вокруг сайдбара
+        # и бренд-хедера). Сами виджеты (QFrame, QTabWidget, QTreeWidget) остаются
+        # непрозрачными, чтобы текст/списки читались.
+        qss += """
+QMainWindow {
+    background: transparent;
+}
+QWidget#central {
+    background: transparent;
+}
+"""
+    app.setStyleSheet(qss)
     return p
