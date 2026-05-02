@@ -51,21 +51,22 @@ _CLAUDE_ORANGE_HOVER_LIGHT = "#B36A50"
 
 DARK = Palette(
     name="dark",
-    bg="#161616",
-    surface="#1F1F1F",
-    surface_elev="#2A2A2A",
-    border_subtle="#2E2E2E",
-    border_strong="#3A3A3A",
-    text_primary="#ECECEC",
-    text_secondary="#9E9E9E",
-    text_disabled="#5C5C5C",
+    # Blackout: чисто чёрный фон + минимальные градации серого для поверхностей
+    bg="#000000",
+    surface="#0A0A0A",
+    surface_elev="#141414",
+    border_subtle="#1C1C1C",
+    border_strong="#2A2A2A",
+    text_primary="#F0F0F0",
+    text_secondary="#9A9A9A",
+    text_disabled="#555555",
     accent=_CLAUDE_ORANGE,
     accent_hover=_CLAUDE_ORANGE_HOVER_DARK,
     accent_pressed="#B36A50",
     accent_on="#FFFFFF",
     danger="#E07B7B",
-    selection_bg="#3A2820",
-    alt_row="#1B1B1B",
+    selection_bg="#2C1B14",
+    alt_row="#080808",
 )
 
 

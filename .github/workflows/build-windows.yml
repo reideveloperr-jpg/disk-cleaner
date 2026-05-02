@@ -1,0 +1,60 @@
+name: Build Windows
+
+on:
+  push:
+    branches: [main, "devin/**"]
+  workflow_dispatch:
+  release:
+    types: [created]
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install project + PyInstaller
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .
+          pip install pyinstaller
+
+      - name: Build single-file Windows binary
+        run: |
+          pyinstaller --noconfirm --clean `
+            --name VolchayCleans `
+            --windowed `
+            --onefile `
+            --icon src/disk_cleaner/assets/volchay_logo.ico `
+            --collect-data disk_cleaner `
+            --collect-submodules PySide6 `
+            --paths src `
+            scripts/pyinstaller_entry.py
+
+      - name: Verify output
+        run: |
+          dir dist
+          if (-not (Test-Path dist/VolchayCleans.exe)) {
+            Write-Error "VolchayCleans.exe not produced"
+            exit 1
+          }
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: VolchayCleans-windows-x64
+          path: dist/VolchayCleans.exe
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Attach to release
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/VolchayCleans.exe
