@@ -108,14 +108,3 @@ CATEGORY_LABEL: dict[FileCategory, str] = {
     FileCategory.INSTALLER: "Установщики",
     FileCategory.OTHER: "Прочее",
 }
-
-CATEGORY_ICON: dict[FileCategory, str] = {
-    FileCategory.VIDEO: "🎬",
-    FileCategory.PHOTO: "🖼",
-    FileCategory.AUDIO: "🎵",
-    FileCategory.DOCUMENT: "📄",
-    FileCategory.ARCHIVE: "🗜",
-    FileCategory.CODE: "💻",
-    FileCategory.INSTALLER: "📦",
-    FileCategory.OTHER: "❔",
-}

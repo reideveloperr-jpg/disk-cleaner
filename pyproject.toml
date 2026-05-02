@@ -3,9 +3,9 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "disk-cleaner"
+name = "volchay-cleans"
 version = "0.1.0"
-description = "Cross-platform disk analyzer and cleaner with PySide6 GUI"
+description = "Volchay Cleans — cross-platform disk analyzer and cleaner with PySide6 GUI"
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
@@ -23,11 +23,17 @@ dev = [
 ]
 
 [project.scripts]
+volchay-cleans = "disk_cleaner.gui.main:main"
+volchay-cleans-cli = "disk_cleaner.cli:main"
+# Старые имена оставлены как алиасы для обратной совместимости.
 disk-cleaner = "disk_cleaner.gui.main:main"
 disk-cleaner-cli = "disk_cleaner.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+"disk_cleaner.assets" = ["*.svg"]
 
 [tool.ruff]
 line-length = 110

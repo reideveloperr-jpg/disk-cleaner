@@ -6,7 +6,7 @@ import argparse
 import sys
 from pathlib import Path
 
-from .classifier import CATEGORY_ICON, CATEGORY_LABEL, FileCategory
+from .classifier import CATEGORY_LABEL, FileCategory
 from .duplicates import find_duplicates
 from .junk import RULES, find_all
 from .scanner import format_size, scan, top_n_largest
@@ -25,7 +25,9 @@ def _category_arg(value: str) -> FileCategory:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(prog="disk-cleaner-cli", description="Disk analyzer (CLI mode)")
+    parser = argparse.ArgumentParser(
+        prog="volchay-cleans-cli", description="Volchay Cleans — disk analyzer (CLI mode)"
+    )
     parser.add_argument("path", type=Path, help="root directory to scan")
     parser.add_argument("--top", type=int, default=20, help="show top-N largest files")
     parser.add_argument(
@@ -53,15 +55,17 @@ def main(argv: list[str] | None = None) -> int:
     for cat, size in sorted(result.by_category.items(), key=lambda kv: kv[1], reverse=True):
         if size == 0:
             continue
-        icon = CATEGORY_ICON[cat]
         label = CATEGORY_LABEL[cat]
-        print(f"  {icon} {label:<14} {format_size(size)}")
+        print(f"  {label:<14} {format_size(size)}")
 
-    print(f"\nTop {args.top} largest files" + (f" in {[c.value for c in args.category]}" if args.category else "") + ":")
+    print(
+        f"\nTop {args.top} largest files"
+        + (f" in {[c.value for c in args.category]}" if args.category else "")
+        + ":"
+    )
     top = top_n_largest(result.files, n=args.top, categories=args.category)
     for f in top:
-        icon = CATEGORY_ICON[f.category]
-        print(f"  {icon} {format_size(f.size):>10}  {f.path}")
+        print(f"  [{CATEGORY_LABEL[f.category]:<10}] {format_size(f.size):>10}  {f.path}")
 
     if args.junk:
         print("\nJunk categories:")

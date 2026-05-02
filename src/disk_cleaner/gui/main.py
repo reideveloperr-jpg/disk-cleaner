@@ -1,14 +1,15 @@
-"""Главное окно PySide6 GUI для Disk Cleaner."""
+"""Главное окно PySide6 GUI для Volchay Cleans."""
 
 from __future__ import annotations
 
 import os
 import sys
+from importlib import resources
 from pathlib import Path
 from typing import cast
 
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QAction, QActionGroup
+from PySide6.QtGui import QAction, QActionGroup, QIcon
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QApplication,
@@ -32,7 +33,7 @@ from PySide6.QtWidgets import (
 
 from .. import __version__
 from ..actions import summarize, trash_paths
-from ..classifier import CATEGORY_ICON, CATEGORY_LABEL, FileCategory
+from ..classifier import CATEGORY_LABEL, FileCategory
 from ..duplicates import DuplicateGroup
 from ..junk import RULES, JunkItem
 from ..scanner import DirNode, ScanResult, format_size, top_n_largest
@@ -40,7 +41,15 @@ from .spinner import BusySpinner
 from .theme import ThemeMode, apply_theme, load_saved_mode, save_mode
 from .workers import DuplicatesWorker, JunkWorker, ScanWorker
 
-LOG_PATH = Path.home() / ".disk-cleaner" / "actions.log.jsonl"
+APP_NAME = "Volchay Cleans"
+ORG_NAME = "volchay-cleans"
+LOG_PATH = Path.home() / ".volchay-cleans" / "actions.log.jsonl"
+
+
+def _logo_path() -> str:
+    """Абсолютный путь к SVG-логотипу внутри пакета."""
+    with resources.as_file(resources.files("disk_cleaner.assets") / "volchay_logo.svg") as p:
+        return str(p)
 
 
 class _SizeItem(QTreeWidgetItem):
@@ -62,7 +71,8 @@ class _SizeItem(QTreeWidgetItem):
 class MainWindow(QMainWindow):
     def __init__(self) -> None:
         super().__init__()
-        self.setWindowTitle(f"Disk Cleaner {__version__}")
+        self.setWindowTitle(f"{APP_NAME} {__version__}")
+        self.setWindowIcon(QIcon(_logo_path()))
         self.resize(1100, 720)
 
         self._scan_result: ScanResult | None = None
@@ -81,7 +91,7 @@ class MainWindow(QMainWindow):
         self.path_edit.setPlaceholderText("Путь для сканирования")
         browse_btn = QPushButton("Обзор…")
         browse_btn.clicked.connect(self._browse)
-        self.scan_btn = QPushButton("▶ Сканировать")
+        self.scan_btn = QPushButton("Сканировать")
         self.scan_btn.setDefault(True)
         self.scan_btn.clicked.connect(self._toggle_scan)
         path_bar.addWidget(QLabel("Папка:"))
@@ -115,7 +125,7 @@ class MainWindow(QMainWindow):
         chips_layout.addWidget(type_label)
         self.category_checks: dict[FileCategory, QCheckBox] = {}
         for cat in FileCategory:
-            cb = QCheckBox(f"{CATEGORY_ICON[cat]} {CATEGORY_LABEL[cat]}")
+            cb = QCheckBox(CATEGORY_LABEL[cat])
             cb.setChecked(True)
             cb.setProperty("role", "chip")
             cb.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -150,7 +160,7 @@ class MainWindow(QMainWindow):
         self.files_tree.header().setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
         self.files_tree.header().setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
         self.files_tree.header().setSectionResizeMode(3, QHeaderView.ResizeMode.ResizeToContents)
-        self.tabs.addTab(self.files_tree, "🔎 По типу")
+        self.tabs.addTab(self.files_tree, "По типу")
 
         # Вкладка 2: Дерево папок
         self.dirs_tree = QTreeWidget()
@@ -160,7 +170,7 @@ class MainWindow(QMainWindow):
         self.dirs_tree.header().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
         self.dirs_tree.header().setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
         self.dirs_tree.header().setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
-        self.tabs.addTab(self.dirs_tree, "📁 По папкам")
+        self.tabs.addTab(self.dirs_tree, "По папкам")
 
         # Вкладка 3: Мусор
         self.junk_tree = QTreeWidget()
@@ -169,7 +179,7 @@ class MainWindow(QMainWindow):
         self.junk_tree.header().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
         self.junk_tree.header().setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
         self.junk_tree.header().setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
-        self.tabs.addTab(self.junk_tree, "🧹 Мусор")
+        self.tabs.addTab(self.junk_tree, "Мусор")
 
         # Вкладка 4: Дубликаты
         dup_widget = QWidget()
@@ -186,13 +196,13 @@ class MainWindow(QMainWindow):
         self.dup_tree.header().setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
         dup_layout.addWidget(self.dup_btn)
         dup_layout.addWidget(self.dup_tree, 1)
-        self.tabs.addTab(dup_widget, "👯 Дубликаты")
+        self.tabs.addTab(dup_widget, "Дубликаты")
 
         # Низ: dry-run + удалить
         bottom = QHBoxLayout()
         self.dry_run_cb = QCheckBox("Dry run (не удалять, только показать план)")
         self.dry_run_cb.setChecked(True)
-        self.delete_btn = QPushButton("🗑 Удалить выбранное (в корзину)")
+        self.delete_btn = QPushButton("Удалить выбранное (в корзину)")
         self.delete_btn.setProperty("role", "danger")
         self.delete_btn.clicked.connect(self._delete_selected)
         bottom.addWidget(self.dry_run_cb)
@@ -238,7 +248,7 @@ class MainWindow(QMainWindow):
     def _toggle_scan(self) -> None:
         if self._scan_worker is not None and self._scan_worker.isRunning():
             self._scan_worker.cancel()
-            self.scan_btn.setText("⏹ Останавливаю…")
+            self.scan_btn.setText("Останавливаю…")
             self.scan_btn.setEnabled(False)
             return
         self._start_scan()
@@ -251,7 +261,7 @@ class MainWindow(QMainWindow):
         self._reset_results()
         self.spinner.start()
         self.progress_label.setText(f"Сканирую {path}…")
-        self.scan_btn.setText("⏹ Стоп")
+        self.scan_btn.setText("Остановить")
         worker = ScanWorker(path, self)
         worker.progress.connect(self._on_scan_progress)
         worker.finished_ok.connect(self._on_scan_done)
@@ -272,7 +282,7 @@ class MainWindow(QMainWindow):
             + (" (отменено)" if result.cancelled else "")
             + (f"; ошибок: {len(result.errors)}" if result.errors else "")
         )
-        self.scan_btn.setText("▶ Сканировать")
+        self.scan_btn.setText("Сканировать")
         self.scan_btn.setEnabled(True)
         self._populate_summary(result)
         self._refresh_top_files()
@@ -291,7 +301,7 @@ class MainWindow(QMainWindow):
         for cat, size in sorted(result.by_category.items(), key=lambda kv: kv[1], reverse=True):
             if size == 0:
                 continue
-            parts.append(f"{CATEGORY_ICON[cat]} {CATEGORY_LABEL[cat]}: {format_size(size)}")
+            parts.append(f"{CATEGORY_LABEL[cat]}: {format_size(size)}")
         self.summary_label.setText("   ".join(parts))
 
     def _set_categories(self, cats: set[FileCategory]) -> None:
@@ -313,7 +323,7 @@ class MainWindow(QMainWindow):
         top = top_n_largest(self._scan_result.files, n=500, categories=selected)
         for f in top:
             mtime = _format_mtime(f.mtime)
-            label = f"{CATEGORY_ICON[f.category]} {CATEGORY_LABEL[f.category]}"
+            label = CATEGORY_LABEL[f.category]
             item = _SizeItem([f.path, format_size(f.size), label, mtime], f.size)
             item.setData(0, Qt.ItemDataRole.UserRole, f.path)
             self.files_tree.addTopLevelItem(item)
@@ -495,8 +505,9 @@ def _build_dir_items(parent_item: QTreeWidgetItem, parent: DirNode) -> None:
 
 def main() -> int:
     app = QApplication(sys.argv)
-    app.setApplicationName("disk-cleaner")
-    app.setOrganizationName("disk-cleaner")
+    app.setApplicationName(APP_NAME)
+    app.setOrganizationName(ORG_NAME)
+    app.setWindowIcon(QIcon(_logo_path()))
     mode = load_saved_mode()
     p = apply_theme(app, mode)
     win = MainWindow()
