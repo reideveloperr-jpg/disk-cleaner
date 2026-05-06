@@ -188,9 +188,18 @@ void ScanRunner::start(const QString& root, const QStringList& excluded)
     connect(m_thread, &QThread::finished, m_thread, &QObject::deleteLater);
     // Once Qt destroys the thread/worker via deleteLater above, null the
     // raw pointers so ~ScanRunner() and cancel() don't dereference a
-    // dangling QThread* / ScanWorker*.
-    connect(m_thread, &QObject::destroyed, this, [this] { m_thread = nullptr; });
-    connect(m_worker, &QObject::destroyed, this, [this] { m_worker = nullptr; });
+    // dangling QThread* / ScanWorker*. Capture the specific pointer in
+    // the lambda so a delayed destroyed() signal from a *previous*
+    // thread/worker (queued behind a fresh start()) does not stomp on
+    // the new m_thread/m_worker we just assigned.
+    QThread* threadPtr     = m_thread;
+    ScanWorker* workerPtr  = m_worker;
+    connect(m_thread, &QObject::destroyed, this, [this, threadPtr] {
+        if (m_thread == threadPtr) m_thread = nullptr;
+    });
+    connect(m_worker, &QObject::destroyed, this, [this, workerPtr] {
+        if (m_worker == workerPtr) m_worker = nullptr;
+    });
 
     m_running = true;
     m_thread->start();
