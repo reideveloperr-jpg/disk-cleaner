@@ -15,14 +15,25 @@ void ScanWorker::cancel()
 bool ScanWorker::isExcluded(const QString& absPath) const
 {
     // Match prefixes only at directory boundaries: excluding "C:/Users"
-    // must not also drop "C:/UsersBackup" or "C:/Users2".
+    // must not also drop "C:/UsersBackup" or "C:/Users2".  Strip any
+    // trailing separator from the excluded entry so "C:/Users/" still
+    // matches "C:/Users/sub" (boundary check would otherwise look at
+    // 's' after the slash).
     for (const QString& ex : m_excluded) {
-        if (!absPath.startsWith(ex, Qt::CaseInsensitive)) {
+        QString trimmed = ex;
+        while (trimmed.endsWith(QLatin1Char('/')) ||
+               trimmed.endsWith(QLatin1Char('\\'))) {
+            trimmed.chop(1);
+        }
+        if (trimmed.isEmpty()) {
             continue;
         }
-        if (absPath.size() == ex.size() ||
-            absPath[ex.size()] == QLatin1Char('/') ||
-            absPath[ex.size()] == QLatin1Char('\\')) {
+        if (!absPath.startsWith(trimmed, Qt::CaseInsensitive)) {
+            continue;
+        }
+        if (absPath.size() == trimmed.size() ||
+            absPath[trimmed.size()] == QLatin1Char('/') ||
+            absPath[trimmed.size()] == QLatin1Char('\\')) {
             return true;
         }
     }
