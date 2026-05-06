@@ -1,14 +1,51 @@
-__pycache__/
-*.py[cod]
-*.egg-info/
-.eggs/
+# Build directories
 build/
-dist/
-.venv/
-venv/
-.env
-.mypy_cache/
-.ruff_cache/
-.pytest_cache/
-*.log
+build-*/
+out/
+cmake-build-*/
+
+# IDEs / editors
+.vs/
+.vscode/
+.idea/
+*.user
+*.swp
+*.swo
+
+# CMake artifacts
+CMakeCache.txt
+CMakeFiles/
+CMakeScripts/
+cmake_install.cmake
+Makefile
+*_autogen/
+
+# Qt
+*.qm
+moc_*.cpp
+qrc_*.cpp
+ui_*.h
+
+# OS
 .DS_Store
+Thumbs.db
+desktop.ini
+
+# Python virtualenvs / caches (legacy, just in case)
+.venv/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+__pycache__/
+
+# Compiled
+*.o
+*.obj
+*.exe
+*.dll
+*.lib
+*.a
+*.so
+*.so.*
+*.app
+*.dSYM/
