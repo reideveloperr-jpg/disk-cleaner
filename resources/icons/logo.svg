@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <defs>
+    <linearGradient id="amberBg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0"   stop-color="#FBBF24"/>
+      <stop offset="0.55" stop-color="#F59E0B"/>
+      <stop offset="1"   stop-color="#D97706"/>
+    </linearGradient>
+    <linearGradient id="trunk" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0" stop-color="#3F2A14"/>
+      <stop offset="1" stop-color="#5A3D1F"/>
+    </linearGradient>
+    <radialGradient id="canopy" cx="0.5" cy="0.55" r="0.55">
+      <stop offset="0"   stop-color="#FFFDF6" stop-opacity="0.95"/>
+      <stop offset="0.6" stop-color="#FFFDF6" stop-opacity="0.85"/>
+      <stop offset="1"   stop-color="#FFE9B7" stop-opacity="0.0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Rounded amber tile -->
+  <rect x="3" y="3" width="58" height="58" rx="16" fill="url(#amberBg)"/>
+
+  <!-- Soft inner glow behind the tree -->
+  <circle cx="32" cy="34" r="22" fill="url(#canopy)"/>
+
+  <!-- Tree trunk -->
+  <path d="M30 40 L30 52 L34 52 L34 40 Z" fill="url(#trunk)"/>
+  <!-- Subtle root flare -->
+  <path d="M27 53 L37 53 L35 55 L29 55 Z" fill="#3F2A14" fill-opacity="0.85"/>
+
+  <!-- Stylised three-tier canopy -->
+  <path d="M32 9
+           L19 24 L25 24 L17 34 L24 34 L15 44 L32 44
+           L32 44
+           L49 44 L40 34 L47 34 L39 24 L45 24 Z"
+        fill="#FFFDF6"
+        stroke="#7C3D08"
+        stroke-width="1.6"
+        stroke-linejoin="round"/>
+
+  <!-- Highlight stripe down the middle of the canopy -->
+  <path d="M32 9 L32 44"
+        stroke="#F59E0B"
+        stroke-width="1.4"
+        stroke-opacity="0.55"
+        stroke-linecap="round"/>
+</svg>

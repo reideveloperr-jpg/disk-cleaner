@@ -1,0 +1,19 @@
+<!DOCTYPE RCC>
+<RCC version="1.0">
+    <qresource prefix="/icons">
+        <file alias="logo.svg">icons/logo.svg</file>
+        <file alias="nav-overview.svg">icons/nav-overview.svg</file>
+        <file alias="nav-analyzer.svg">icons/nav-analyzer.svg</file>
+        <file alias="nav-files.svg">icons/nav-files.svg</file>
+        <file alias="nav-recent.svg">icons/nav-recent.svg</file>
+        <file alias="nav-settings.svg">icons/nav-settings.svg</file>
+        <file alias="icon-search.svg">icons/icon-search.svg</file>
+    </qresource>
+    <qresource prefix="/styles">
+        <file alias="dark.qss">styles/dark.qss</file>
+        <file alias="light.qss">styles/light.qss</file>
+        <file alias="blackout.qss">styles/blackout.qss</file>
+        <file alias="rgb.qss">styles/rgb.qss</file>
+        <file alias="amber.qss">styles/amber.qss</file>
+    </qresource>
+</RCC>
