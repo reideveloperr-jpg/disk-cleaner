@@ -3,6 +3,7 @@
 #include "AnalyzerView.h"
 #include "FilesView.h"
 #include "OverviewView.h"
+#include "RecentView.h"
 #include "RadarOverlay.h"
 #include "RgbGlowOverlay.h"
 #include "RgbStripe.h"
@@ -174,6 +175,7 @@ void MainWindow::buildUi()
     m_overview = new OverviewView(this);
     m_analyzer = new AnalyzerView(this);
     m_files    = new FilesView(this);
+    m_recent   = new RecentView(this);
     m_settings = new SettingsView(this);
     connect(m_overview, &OverviewView::driveActivated, this, [this](const QString& root) {
         m_pathEdit->setText(root);
@@ -193,6 +195,7 @@ void MainWindow::buildUi()
     m_stack->addWidget(m_overview);
     m_stack->addWidget(m_analyzer);
     m_stack->addWidget(m_files);
+    m_stack->addWidget(m_recent);
     m_stack->addWidget(m_settings);
     mainLayout->addWidget(m_stack, 1);
 
@@ -572,6 +575,7 @@ void MainWindow::onScanFinished(ScanResult r)
 
     m_analyzer->setScanResult(r);
     m_files->setScanResult(r);
+    m_recent->setScanResult(r);
     m_overview->refresh();
     m_sidebar->setActiveSection(Sidebar::Analyzer);
     m_stack->setCurrentIndex(Sidebar::Analyzer);

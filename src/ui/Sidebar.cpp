@@ -59,6 +59,8 @@ Sidebar::Sidebar(QWidget* parent) : QWidget(parent)
                                   QStringLiteral(":/icons/nav-analyzer.svg"), Analyzer);
     m_btnFiles    = makeNavButton(tr_("Files"),
                                   QStringLiteral(":/icons/nav-files.svg"), Files);
+    m_btnRecent   = makeNavButton(tr_("Recent"),
+                                  QStringLiteral(":/icons/nav-recent.svg"), Recent);
     m_btnSettings = makeNavButton(tr_("Settings"),
                                   QStringLiteral(":/icons/nav-settings.svg"), Settings);
     m_btnOverview->setChecked(true);
@@ -87,6 +89,7 @@ Sidebar::Sidebar(QWidget* parent) : QWidget(parent)
         m_btnOverview->setText(tr_("Overview"));
         m_btnAnalyzer->setText(tr_("Analyzer"));
         m_btnFiles->setText(tr_("Files"));
+        m_btnRecent->setText(tr_("Recent"));
         m_btnSettings->setText(tr_("Settings"));
         m_themeBtn->setText(ThemeManager::themeShortLabel(ThemeManager::instance().current()));
         m_themeBtn->setToolTip(tr_("Cycle theme (Dark → Light → Amber → Blackout → RGB)"));

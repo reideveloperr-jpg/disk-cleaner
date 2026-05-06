@@ -51,13 +51,16 @@ int main(int argc, char* argv[])
     QApplication::setOrganizationName(QStringLiteral("Volchay"));
     QApplication::setOrganizationDomain(QStringLiteral("volchay.local"));
 
+    // QApplication must exist before any QLocalSocket / QLocalServer
+    // operations — Qt's IPC primitives rely on the global event-loop
+    // thread / posted-event machinery owned by the application object.
+    QApplication app(argc, argv);
+
     // Single-instance lock.  If another copy of the app is already
     // running, ask it to bring its window to the foreground and exit.
     if (handoffToRunningInstance()) {
         return 0;
     }
-
-    QApplication app(argc, argv);
     app.setWindowIcon(QIcon(QStringLiteral(":/icons/logo.svg")));
 
     // Try to load bundled font, but fall back gracefully.

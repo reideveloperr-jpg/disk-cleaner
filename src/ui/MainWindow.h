@@ -9,6 +9,7 @@ class Sidebar;
 class OverviewView;
 class AnalyzerView;
 class FilesView;
+class RecentView;
 class SettingsView;
 class QStackedWidget;
 class QLineEdit;
@@ -68,6 +69,7 @@ private:
     OverviewView* m_overview = nullptr;
     AnalyzerView* m_analyzer = nullptr;
     FilesView* m_files = nullptr;
+    RecentView* m_recent = nullptr;
     SettingsView* m_settings = nullptr;
 
     // Top bar controls.

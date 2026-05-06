@@ -15,6 +15,7 @@ public:
         Overview = 0,
         Analyzer,
         Files,
+        Recent,
         Settings,
     };
 
@@ -37,6 +38,7 @@ private:
     QPushButton* m_btnOverview = nullptr;
     QPushButton* m_btnAnalyzer = nullptr;
     QPushButton* m_btnFiles = nullptr;
+    QPushButton* m_btnRecent = nullptr;
     QPushButton* m_btnSettings = nullptr;
     SectionId m_active = Overview;
 };

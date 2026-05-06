@@ -58,6 +58,11 @@ void HashRunner::compute(const QString& path)
     });
     connect(m_thread, &QThread::finished, m_worker, &QObject::deleteLater);
     connect(m_thread, &QThread::finished, m_thread, &QObject::deleteLater);
+    // Null raw pointers when Qt destroys the underlying objects so
+    // ~HashRunner() and re-entrant compute() calls don't dereference
+    // dangling pointers (deleteLater above hands them back to Qt).
+    connect(m_thread, &QObject::destroyed, this, [this] { m_thread = nullptr; });
+    connect(m_worker, &QObject::destroyed, this, [this] { m_worker = nullptr; });
 
     m_thread->start();
 }

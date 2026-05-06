@@ -5,6 +5,7 @@
         <file alias="nav-overview.svg">icons/nav-overview.svg</file>
         <file alias="nav-analyzer.svg">icons/nav-analyzer.svg</file>
         <file alias="nav-files.svg">icons/nav-files.svg</file>
+        <file alias="nav-recent.svg">icons/nav-recent.svg</file>
         <file alias="nav-settings.svg">icons/nav-settings.svg</file>
         <file alias="icon-search.svg">icons/icon-search.svg</file>
     </qresource>

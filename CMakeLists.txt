@@ -37,6 +37,7 @@ set(SOURCES
     src/ui/FilesView.cpp
     src/ui/DetailsPanel.cpp
     src/ui/FilterChips.cpp
+    src/ui/RecentView.cpp
     src/ui/SettingsView.cpp
     src/ui/RadarOverlay.cpp
     src/ui/RgbStripe.cpp
@@ -67,6 +68,7 @@ set(HEADERS
     src/ui/FilesView.h
     src/ui/DetailsPanel.h
     src/ui/FilterChips.h
+    src/ui/RecentView.h
     src/ui/SettingsView.h
     src/ui/RadarOverlay.h
     src/ui/RgbStripe.h

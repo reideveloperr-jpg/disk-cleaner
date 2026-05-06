@@ -14,8 +14,15 @@ void ScanWorker::cancel()
 
 bool ScanWorker::isExcluded(const QString& absPath) const
 {
+    // Match prefixes only at directory boundaries: excluding "C:/Users"
+    // must not also drop "C:/UsersBackup" or "C:/Users2".
     for (const QString& ex : m_excluded) {
-        if (absPath.startsWith(ex, Qt::CaseInsensitive)) {
+        if (!absPath.startsWith(ex, Qt::CaseInsensitive)) {
+            continue;
+        }
+        if (absPath.size() == ex.size() ||
+            absPath[ex.size()] == QLatin1Char('/') ||
+            absPath[ex.size()] == QLatin1Char('\\')) {
             return true;
         }
     }
@@ -179,6 +186,11 @@ void ScanRunner::start(const QString& root, const QStringList& excluded)
     });
     connect(m_thread, &QThread::finished, m_worker, &QObject::deleteLater);
     connect(m_thread, &QThread::finished, m_thread, &QObject::deleteLater);
+    // Once Qt destroys the thread/worker via deleteLater above, null the
+    // raw pointers so ~ScanRunner() and cancel() don't dereference a
+    // dangling QThread* / ScanWorker*.
+    connect(m_thread, &QObject::destroyed, this, [this] { m_thread = nullptr; });
+    connect(m_worker, &QObject::destroyed, this, [this] { m_worker = nullptr; });
 
     m_running = true;
     m_thread->start();
